@@ -9,6 +9,7 @@ def userFlags():
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", help="File with card ID's on each line")
     parser.add_argument("-i", "--input", type=str, nargs='+', help="Input from terminal")
+    parser.add_argument("-p", "--pretty", action='store_true', help="Prettify the output")
     return parser.parse_args()
 
 
@@ -81,6 +82,14 @@ def loadFile(fileName):
     return [int(card) for card in cards]
 
 
+def prettifyOutput(output):
+    for user in output.keys():
+        print("{}".format(user))
+        for card in output[user]:
+            print("\t{} => {}".format(card["cardId"], card["cardName"]))
+        
+
+
 if __name__ == "__main__":
     groupedSellers = {}
     cards = None
@@ -99,4 +108,9 @@ if __name__ == "__main__":
         sellers, cardName = getSellers(card)
         groupedSellers = groupSellers(sellers, groupedSellers, card, cardName)
 
-    print(findBestCombo(groupedSellers, cards))
+    output = findBestCombo(groupedSellers, cards)
+
+    if args.pretty:
+        prettifyOutput(output)
+    else:
+        print(output)
