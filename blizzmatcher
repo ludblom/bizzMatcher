@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.8
 
 import requests
 import argparse
@@ -87,7 +87,6 @@ def prettifyOutput(output):
         print("{}".format(user))
         for card in output[user]:
             print("\t{} => {}".format(card["cardId"], card["cardName"]))
-        
 
 
 if __name__ == "__main__":
