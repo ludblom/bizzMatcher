@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
 
 import requests
+import argparse
 from bs4 import BeautifulSoup
+
+
+def userFlags():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--file", help="File with card ID's on each line")
+    parser.add_argument("-i", "--input", type=str, nargs='+', help="Input from terminal")
+    return parser.parse_args()
 
 
 def urlCreator(cardId):
@@ -20,31 +28,34 @@ def parseSellers(cardHtml):
         sellers.append(seller.get_text())
     return sellers
 
-# TODO: Link name to 
-def getName(cardId):
-    cardUrl = urlCreator(cardId)
-    cardHtml = getCardHtml(cardUrl)
+
+def getName(cardHtml):
     soup = BeautifulSoup(cardHtml, "html.parser")
-    cardName = soup.find_all("p", {"class": "rubrik"}).pop().get_text()
+    cardName = soup.find_all("p", {"class": "rubrik"}).pop().get_text().split("\n")[0]
     return cardName
 
 
 def getSellers(cardId):
     cardUrl = urlCreator(cardId)
     cardHtml = getCardHtml(cardUrl)
+
+    name = getName(cardHtml)
     sellers = parseSellers(cardHtml)
-    return sellers
+
+    return sellers, name
 
 
-def groupSellers(sellers, groupedSellers, cardId):
+def groupSellers(sellers, groupedSellers, cardId, cardName):
     for seller in sellers:
         if seller not in groupedSellers.keys():
             groupedSellers[seller] = {}
             groupedSellers[seller]["matches"] = 1
-            groupedSellers[seller]["cards"] = [cardId]
+            matched = {"cardId": cardId, "cardName": cardName}
+            groupedSellers[seller]["cards"] = [matched]
         elif cardId not in groupedSellers[seller]["cards"]:
             groupedSellers[seller]["matches"] += 1
-            groupedSellers[seller]["cards"].append(cardId)
+            matched = {"cardId": cardId, "cardName": cardName}
+            groupedSellers[seller]["cards"].append(matched)
     return groupedSellers
 
 
@@ -54,21 +65,38 @@ def findBestCombo(haveData, cards):
 
     for seller in sorted(haveData, key=lambda key: haveData[key]["matches"], reverse=True):
         for card in haveData[seller]["cards"]:
-            if card not in found:
+            if card["cardId"] not in found:
                 if seller not in filtered.keys():
                     filtered[seller] = []
                 filtered[seller].append(card)
-                found.append(card)
+                found.append(card["cardId"])
 
     return filtered
 
 
+def loadFile(fileName):
+    cards = None
+    with open(fileName) as f:
+        cards = f.read().splitlines()
+    return [int(card) for card in cards]
+
+
 if __name__ == "__main__":
     groupedSellers = {}
-    cards = [48269, 57696, 61740, 59110, 62031, 43751, 51860, 49324, 48170, 56972, 41577, 61148, 38227]
+    cards = None
 
+    args = userFlags()
+
+    if args.file != None:
+        cards = loadFile(args.file)
+    elif args.input != None:
+        cards = [int(card) for card in args.input]
+
+    if cards == None:
+        exit(1)
+    
     for card in cards:
-        sellers = getSellers(card)
-        groupedSellers = groupSellers(sellers, groupedSellers, card)
+        sellers, cardName = getSellers(card)
+        groupedSellers = groupSellers(sellers, groupedSellers, card, cardName)
 
     print(findBestCombo(groupedSellers, cards))
